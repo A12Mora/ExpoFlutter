@@ -9,29 +9,29 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-// Esta es la clase que contiene la lógica y el diseño (Estado)
 class _LoginScreenState extends State<LoginScreen> {
   final _userController = TextEditingController();
   final _passController = TextEditingController();
   final StorageService _storageService = StorageService();
+  bool _isPasswordVisible = false; // Para mostrar/ocultar contraseña
 
-  // FUNCIÓN DE LOGIN:
-  // Es 'async' (asíncrona) porque guardar datos toma tiempo y debemos esperar
+  // Limpieza de controladores (Buena práctica)
+  @override
+  void dispose() {
+    _userController.dispose();
+    _passController.dispose();
+    super.dispose();
+  }
 
   void _login() async {
-    String user = _userController.text;
-    String pass = _passController.text;
+    String user = _userController.text.trim();
+    String pass = _passController.text.trim();
 
-    // Validación simulada
     if (user.isNotEmpty && pass == "1234") {
-      // 1. Generar token simulado
       String token = "user_token_${DateTime.now().millisecondsSinceEpoch}";
-
-      // 2. Guardar token y usuario
       await _storageService.saveToken(token);
       await _storageService.saveUsername(user);
 
-      // 3. Navegar a Home
       if (mounted) {
         Navigator.pushReplacement(
           context,
@@ -40,8 +40,13 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Credenciales inválidas (Use pass: 1234)'),
+        SnackBar(
+          content: const Text('Credenciales inválidas (Use pass: 1234)'),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
       );
     }
@@ -50,25 +55,119 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Iniciar Sesión")),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            TextField(
-              controller: _userController,
-              decoration: const InputDecoration(labelText: "Usuario"),
+      body: Container(
+        // Fondo con Gradiente
+        width: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF6A11CB), Color(0xFF2575FC)],
+          ),
+        ),
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              children: [
+                // Icono o Logo superior
+                const Icon(
+                  Icons.lock_person_rounded,
+                  size: 80,
+                  color: Colors.white,
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  "Bienvenido",
+                  style: TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                const Text(
+                  "Inicia sesión para continuar",
+                  style: TextStyle(color: Colors.white70, fontSize: 16),
+                ),
+                const SizedBox(height: 30),
+
+                // Tarjeta del Formulario
+                Card(
+                  elevation: 8,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Column(
+                      children: [
+                        // Campo de Usuario
+                        TextField(
+                          controller: _userController,
+                          decoration: InputDecoration(
+                            labelText: "Usuario",
+                            prefixIcon: const Icon(Icons.person_outline),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Campo de Contraseña
+                        TextField(
+                          controller: _passController,
+                          obscureText: !_isPasswordVisible,
+                          decoration: InputDecoration(
+                            labelText: "Contraseña",
+                            prefixIcon: const Icon(Icons.lock_outline),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _isPasswordVisible
+                                    ? Icons.visibility
+                                    : Icons.visibility_off,
+                              ),
+                              onPressed: () => setState(
+                                () => _isPasswordVisible = !_isPasswordVisible,
+                              ),
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 25),
+
+                        // Botón de Entrar
+                        SizedBox(
+                          width: double.infinity,
+                          height: 50,
+                          child: ElevatedButton(
+                            onPressed: _login,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF2575FC),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 2,
+                            ),
+                            child: const Text(
+                              "ENTRAR",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _passController,
-              decoration: const InputDecoration(labelText: "Contraseña (1234)"),
-              obscureText: true,
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(onPressed: _login, child: const Text("Entrar")),
-          ],
+          ),
         ),
       ),
     );

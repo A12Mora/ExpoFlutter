@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'db_helper.dart';
 import 'storage_service.dart';
 import 'login_screen.dart';
-import 'main.dart'; // Importamos para acceder al ValueNotifier del tema
+import 'main.dart';
+// Importante: Para abrir el archivo automáticamente necesitarás el paquete open_file_plus
+// import 'package:open_file_plus/open_file_plus.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -36,11 +38,10 @@ class _HomeScreenState extends State<HomeScreen> {
       _isDarkMode = isDark;
     });
 
-    // Actualizar el tema global
     themeNotifier.value = isDark ? ThemeMode.dark : ThemeMode.light;
   }
 
-  // Lógica de Tareas (SQLite)
+  // --- LÓGICA DE TAREAS ---
   Future<void> _addTask(String title, String desc) async {
     await _dbHelper.insertTask(Task(title: title, description: desc));
     _loadData();
@@ -63,30 +64,36 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadData();
   }
 
-  // Lógica de Configuración (Prefs)
+  // --- CONFIGURACIÓN Y EXPORTACIÓN ---
   void _toggleTheme(bool value) async {
     await _storageService.saveTheme(value);
-    setState(() {
-      _isDarkMode = value;
-    });
+    setState(() => _isDarkMode = value);
     themeNotifier.value = value ? ThemeMode.dark : ThemeMode.light;
   }
 
-  // Lógica de Exportación (Archivos)
   void _exportTasks() async {
     try {
       String path = await _storageService.exportTasksToFile(_tasks);
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Tareas exportadas en: $path')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Exportado en: $path'),
+            action: SnackBarAction(
+              label: "ABRIR",
+              onPressed: () {
+                // Aquí llamarías a: OpenFile.open(path);
+              },
+            ),
+          ),
+        );
+        // Lógica para abrir automáticamente:
+        // await OpenFile.open(path);
       }
     } catch (e) {
-      debugPrint(e.toString());
+      debugPrint("Error exportando: $e");
     }
   }
 
-  // Lógica de Logout
   void _logout() async {
     await _storageService.deleteToken();
     if (mounted) {
@@ -97,7 +104,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // UI Dialog para agregar tarea
+  // --- UI: DIALOGO CON DESCRIPCIÓN ADAPTABLE ---
   void _showAddDialog() {
     final titleController = TextEditingController();
     final descController = TextEditingController();
@@ -105,24 +112,39 @@ class _HomeScreenState extends State<HomeScreen> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text("Nueva Tarea"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: titleController,
-              decoration: const InputDecoration(hintText: "Título"),
-            ),
-            TextField(
-              controller: descController,
-              decoration: const InputDecoration(hintText: "Descripción"),
-            ),
-          ],
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleController,
+                decoration: const InputDecoration(
+                  labelText: "Título",
+                  prefixIcon: Icon(Icons.title),
+                ),
+              ),
+              const SizedBox(height: 15),
+              TextField(
+                controller: descController,
+                // SOLUCIÓN AL PROBLEMA DE DESCRIPCIÓN:
+                maxLines: null,
+                keyboardType: TextInputType.multiline,
+                decoration: const InputDecoration(
+                  labelText: "Descripción",
+                  hintText: "Escribe aquí los detalles...",
+                  prefixIcon: Icon(Icons.description),
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("Cancelar"),
+            child: const Text("CANCELAR"),
           ),
           ElevatedButton(
             onPressed: () {
@@ -131,7 +153,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Navigator.pop(context);
               }
             },
-            child: const Text("Guardar"),
+            child: const Text("GUARDAR"),
           ),
         ],
       ),
@@ -143,53 +165,82 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text("Hola, $_username"),
+        elevation: 0,
         actions: [
-          IconButton(icon: const Icon(Icons.save_alt), onPressed: _exportTasks),
+          IconButton(
+            icon: const Icon(Icons.save_alt),
+            tooltip: "Exportar Tareas",
+            onPressed: _exportTasks,
+          ),
           IconButton(icon: const Icon(Icons.logout), onPressed: _logout),
         ],
       ),
       body: Column(
         children: [
-          // Sección Configuración
-          SwitchListTile(
-            title: const Text("Modo Oscuro"),
-            value: _isDarkMode,
-            onChanged: _toggleTheme,
+          // Switch de Tema estético
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Card(
+              child: SwitchListTile(
+                secondary: Icon(
+                  _isDarkMode ? Icons.dark_mode : Icons.light_mode,
+                ),
+                title: const Text("Modo Oscuro"),
+                value: _isDarkMode,
+                onChanged: _toggleTheme,
+              ),
+            ),
           ),
           const Divider(),
           // Lista de Tareas
           Expanded(
-            child: ListView.builder(
-              itemCount: _tasks.length,
-              itemBuilder: (context, index) {
-                final task = _tasks[index];
-                return ListTile(
-                  leading: Checkbox(
-                    value: task.completed,
-                    onChanged: (_) => _toggleTask(task),
+            child: _tasks.isEmpty
+                ? const Center(child: Text("No hay tareas pendientes"))
+                : ListView.builder(
+                    padding: const EdgeInsets.all(12),
+                    itemCount: _tasks.length,
+                    itemBuilder: (context, index) {
+                      final task = _tasks[index];
+                      return Card(
+                        elevation: 2,
+                        margin: const EdgeInsets.only(bottom: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        child: ListTile(
+                          leading: Checkbox(
+                            value: task.completed,
+                            shape: const CircleBorder(),
+                            onChanged: (_) => _toggleTask(task),
+                          ),
+                          title: Text(
+                            task.title,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              decoration: task.completed
+                                  ? TextDecoration.lineThrough
+                                  : null,
+                            ),
+                          ),
+                          subtitle: Text(task.description),
+                          trailing: IconButton(
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              color: Colors.redAccent,
+                            ),
+                            onPressed: () => _deleteTask(task.id!),
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                  title: Text(
-                    task.title,
-                    style: TextStyle(
-                      decoration: task.completed
-                          ? TextDecoration.lineThrough
-                          : null,
-                    ),
-                  ),
-                  subtitle: Text(task.description),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () => _deleteTask(task.id!),
-                  ),
-                );
-              },
-            ),
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: _showAddDialog,
-        child: const Icon(Icons.add),
+        icon: const Icon(Icons.add),
+        label: const Text("Añadir Tarea"),
       ),
     );
   }
