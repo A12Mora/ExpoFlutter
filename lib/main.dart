@@ -7,21 +7,26 @@ import 'storage_service.dart';
 final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
 
 void main() async {
+  // 1. Siempre primero
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Verificamos token y tema guardado antes de arrancar
-  final StorageService storage = StorageService();
-  String? token = await storage.getToken();
-  bool isDark = await storage.getTheme();
+  try {
+    final StorageService storage = StorageService();
+    // Agregamos un try-catch por si el storage falla al iniciar
+    String? token = await storage.getToken();
+    bool isDark = await storage.getTheme();
 
-  // Establecemos el tema inicial
-  themeNotifier.value = isDark ? ThemeMode.dark : ThemeMode.light;
+    themeNotifier.value = isDark ? ThemeMode.dark : ThemeMode.light;
 
-  runApp(
-    MyApp(
-      initialRoute: token != null ? const HomeScreen() : const LoginScreen(),
-    ),
-  );
+    runApp(
+      MyApp(
+        initialRoute: token != null ? const HomeScreen() : const LoginScreen(),
+      ),
+    );
+  } catch (e) {
+    // Si algo falla, arrancamos la app igual con el Login para evitar el pantallazo negro
+    runApp(const MyApp(initialRoute: LoginScreen()));
+  }
 }
 
 class MyApp extends StatelessWidget {

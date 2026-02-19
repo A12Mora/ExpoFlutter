@@ -3,8 +3,9 @@ import 'db_helper.dart';
 import 'storage_service.dart';
 import 'login_screen.dart';
 import 'main.dart';
-// Importante: Para abrir el archivo automáticamente necesitarás el paquete open_file_plus
-// import 'package:open_file_plus/open_file_plus.dart';
+
+// Importante: Para abrir el archivo automáticamente se necesita el paquete open_file_plus
+//import 'package:open_file_plus/open_file_plus.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -81,13 +82,13 @@ class _HomeScreenState extends State<HomeScreen> {
             action: SnackBarAction(
               label: "ABRIR",
               onPressed: () {
-                // Aquí llamarías a: OpenFile.open(path);
+                //OpenFile.open(path);
               },
             ),
           ),
         );
         // Lógica para abrir automáticamente:
-        // await OpenFile.open(path);
+        //await OpenFile.open(path);
       }
     } catch (e) {
       debugPrint("Error exportando: $e");
